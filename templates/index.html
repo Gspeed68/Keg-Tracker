@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Keg Tracker</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .form-container {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+        }
+        select, input[type="text"] {
+            padding: 5px;
+            margin: 5px 0;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Keg Tracker</h1>
+    
+    <div class="form-container">
+        <h2>Add New Keg</h2>
+        <form action="/add_keg" method="POST">
+            <label for="keg_type">Keg Type:</label>
+            <select id="keg_type" name="keg_type" required>
+                <option value="">Select a keg type</option>
+                <option value="Sixtel">Sixtel</option>
+                <option value="Half Barrel">Half Barrel</option>
+            </select><br><br>
+            
+            <label for="location">Location:</label>
+            <input type="text" id="location" name="location" required><br><br>
+            
+            <label for="status">Status:</label>
+            <select id="status" name="status" required>
+                <option value="">Select status</option>
+                <option value="Full">Full</option>
+                <option value="Empty">Empty</option>
+            </select><br><br>
+            
+            <input type="submit" value="Add Keg">
+        </form>
+    </div>
+
+    <h2>Current Kegs</h2>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Keg Type</th>
+            <th>Location</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+        {% for keg in kegs %}
+        <tr>
+            <td>{{ keg[0] }}</td>
+            <td>{{ keg[1] }}</td>
+            <td>{{ keg[2] }}</td>
+            <td>{{ keg[3] }}</td>
+            <td>
+                <form action="/update_keg/{{ keg[0] }}" method="POST" style="display: inline;">
+                    <input type="text" name="location" placeholder="New location">
+                    <select name="status">
+                        <option value="">Select status</option>
+                        <option value="Full">Full</option>
+                        <option value="Empty">Empty</option>
+                    </select>
+                    <input type="submit" value="Update">
+                </form>
+                <form action="/delete_keg/{{ keg[0] }}" method="POST" style="display: inline;">
+                    <input type="submit" value="Delete">
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html> 
