@@ -7,6 +7,7 @@ A Flask-based web application for tracking keg inventory. This application allow
 - View all existing kegs in a table format
 - Update the location and status of existing kegs
 - Delete kegs from the inventory
+- Create NFTs for kegs on the blockchain
 
 The application uses SQLite as its database backend and provides a simple web interface
 for managing keg inventory.
@@ -31,11 +32,26 @@ Dependencies:
 - Werkzeug==3.0.1
 """
 
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash
 import sqlite3
+from blockchain import KegNFT
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Initialize Flask application
 app = Flask(__name__)
+app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-here')
+
+# Initialize blockchain connection
+try:
+    nft_manager = KegNFT()
+    blockchain_enabled = True
+except Exception as e:
+    print(f"Blockchain initialization failed: {e}")
+    blockchain_enabled = False
 
 # Database configuration
 DATABASE = 'keg_tracking.db'
@@ -63,7 +79,8 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 keg_type TEXT NOT NULL,
                 location TEXT NOT NULL,
-                status TEXT NOT NULL
+                status TEXT NOT NULL,
+                nft_token_id TEXT
             )
         ''')
         conn.commit()
@@ -80,12 +97,12 @@ def index():
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM kegs')
         kegs = cursor.fetchall()
-    return render_template('index.html', kegs=kegs)
+    return render_template('index.html', kegs=kegs, blockchain_enabled=blockchain_enabled)
 
 @app.route('/add_keg', methods=['POST'])
 def add_keg():
     """
-    Add a new keg to the database.
+    Add a new keg to the database and optionally create an NFT.
     
     This function:
     1. Retrieves form data (keg_type, location, status)
@@ -103,6 +120,18 @@ def add_keg():
         cursor = conn.cursor()
         cursor.execute('INSERT INTO kegs (keg_type, location, status) VALUES (?, ?, ?)', 
                       (keg_type, location, status))
+        keg_id = cursor.lastrowid
+        
+        # Create NFT if blockchain is enabled
+        if blockchain_enabled and request.form.get('create_nft') == 'on':
+            try:
+                tx_hash = nft_manager.mint_nft(keg_id, keg_type, location, status)
+                cursor.execute('UPDATE kegs SET nft_token_id = ? WHERE id = ?', 
+                             (tx_hash, keg_id))
+                flash(f'NFT created successfully! Transaction hash: {tx_hash}')
+            except Exception as e:
+                flash(f'Failed to create NFT: {str(e)}')
+        
         conn.commit()
     return redirect(url_for('index'))
 
